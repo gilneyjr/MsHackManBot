@@ -35,6 +35,10 @@ void Game::settings() {
 		std::cin >> max_rounds;
 }
 
+void Game::resetField() {
+	
+}
+
 bool Game::saveCellType(std::string &cell, size_t row, size_t col) {
 	if(cell[0] == 'P' and cell.size() == 2) {
 		size_t id = cell[1] - '0';
