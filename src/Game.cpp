@@ -22,21 +22,30 @@ void Game::settings() {
 	else if(!aux.compare("field_width")) {
 		std::cin >> field_width;
 
-		if(field_height != 0u)
+		if(field_height != 0u) {
 			field.resize(field_height*field_width);
+			danger.resize(field_height*field_width);
+		}
 	}
 	else if(!aux.compare("field_height")) {
 		std::cin >> field_height;
 
-		if(field_width != 0u)
+		if(field_width != 0u) {
 			field.resize(field_height*field_width);
+			danger.resize(field_height*field_width);
+		}
 	}
 	else if(!aux.compare("max_rounds"))
 		std::cin >> max_rounds;
 }
 
 void Game::resetField() {
-	
+	snippets.clear();
+	bugs.clear();
+	spawns.clear();
+	bombs.clear();
+	for(auto &e: danger)
+		e = 0;
 }
 
 bool Game::saveCellType(std::string &cell, size_t row, size_t col) {
@@ -55,8 +64,16 @@ bool Game::saveCellType(std::string &cell, size_t row, size_t col) {
 			spawns.emplace_back(row, col, timeToSpawn);
 		}
 	}
-	else if(cell[0] == 'G' and cell.size() == 2)
-		gates.emplace_back(row, col, cell[1]);
+	else if(cell[0] == 'G' and cell.size() == 2){
+		if(cell[1] == 'l') {
+			leftGate.setRow(row);
+			leftGate.setCol(col);
+		}
+		else {
+			rightGate.setRow(row);
+			rightGate.setCol(col);
+		}
+	}
 	else if(cell[0] == 'E' and cell.size() == 2) {
 		int type = cell[1] - '0';
 		bugs.emplace_back(row, col, type);
@@ -110,6 +127,9 @@ void Game::update() {
 
 			if(!temp.empty())
 				field[count] = saveCellType(temp, count/field_width, count%field_height);
+
+			for(auto &bug: bugs)
+				calculateDanger(bug.getRow(), bug.getCol());
 		}
 		else if(!aux.compare("round"))
 			std::cin >> round;
@@ -155,7 +175,29 @@ void Game::action() {
 }
 
 void Game::move() {
-	// Finish it!
+	/* Executar a árvore aqui */
+}
+
+void Game::calculateDanger(size_t row, size_t col) {
+	/*danger[row*field_width + col] = 0;
+	std::queue<size_t> queue;
+	queue.push(row*field_width + col);
+	while(!queue.empty()) {
+		size_t v = queue.front();
+		queue.pop();
+		for(auto &w : getAdj(v)) {
+			if(w != row*field_width+col) {
+				if(!danger[w]) {
+					danger[w] = danger[v]+1;
+					queue.push(w);
+				}
+				else if(danger[v]+1 < danger[w]) {
+					danger[w] = danger[v]+1;
+					queue.push(w);
+				}
+			}
+		}
+	}*/
 }
 
 Game::Game() : 
@@ -164,10 +206,7 @@ Game::Game() :
 	max_rounds(0),
 	field_width(0),
 	field_height(0),
-	round(0),
-	field(std::vector<bool>()),
-	me(Player()),
-	enemy(Player()) {}
+	round(0) {}
 
 void Game::run() {
 	std::string command;
@@ -182,4 +221,83 @@ void Game::run() {
 		// Ignores the line remainder
 		std::getline(std::cin, command);
 	}
+}
+
+size_t Game::dangerAt(size_t row, size_t col) {
+	return danger[row*field_width+col];
+}
+
+std::vector<size_t> Game::getAdj(size_t pos) {
+	size_t row = pos/field_width;
+	size_t col = pos%field_width;
+
+	std::vector<size_t> adj;
+
+	// Move up
+	if(row > 0 and field[(row-1)*field_width + col])
+		adj.push_back((row-1)*field_width + col);
+	
+	// Move down
+	if(row < field_height-1 and field[(row+1)*field_width + col])
+		adj.push_back((row+1)*field_width + col);
+	
+	// Move left
+	if(col > 0 and field[row*field_width + col-1])
+		adj.push_back(row*field_width + col-1);
+
+	// Move right
+	if(col < field_width-1 and field[row*field_width + col+1])
+		adj.push_back(row*field_width + col+1);
+
+	// Move from Left Gate to Right Gate
+	if(row == leftGate.getRow() and col == leftGate.getCol())
+		adj.push_back(rightGate.getRow()*field_width + rightGate.getCol());
+
+	// Move from Right Gate to Left Gate
+	if(row == rightGate.getRow() and col == rightGate.getCol())
+		adj.push_back(leftGate.getRow()*field_width + leftGate.getCol());
+
+	return adj;
+}
+
+size_t Game::getAdjWithLessDanger(size_t row, size_t col) {
+	size_t min = row*field_width + col;
+
+	for(auto &e: getAdj(min))
+		if(danger[e] < danger[min])
+			min = e;
+	return min;
+}
+
+void Game::discardMoves() {
+	while(!moves.empty())
+		moves.pop();
+}
+
+bool Game::hasMoves() {
+	return !moves.empty();
+}
+
+Point Game::getMyTarget() {
+	return target;
+}
+
+std::vector<Bomb>& Game::getBombs() {
+	return bombs;
+}
+
+std::vector<Snippet>& Game::getSnippets() {
+	return snippets;
+}
+
+Player& Game::getMe() {
+	return me;
+}
+
+Player& Game::getEnemy() {
+	return enemy;
+}
+
+void Game::AStar() {
+	/* Nothing yet */
 }

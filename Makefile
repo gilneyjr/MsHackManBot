@@ -1,28 +1,36 @@
 SRC = ./src
 BIN = ./bin
 INC = ./inc
-LIB = ./lib
+OBJ = ./obj
 FLAGS = -std=c++11 -Wall
 GCC = g++
 
 all: lib $(SRC)/main.cpp
-	$(GCC) $(FLAGS) $(SRC)/main.cpp $(LIB)/* -I $(INC) -o $(BIN)/main
+	$(GCC) $(FLAGS) $(SRC)/main.cpp $(OBJ)/* -I $(INC) -o $(BIN)/main
 
-lib: $(LIB)/Bomb.o \
-	$(LIB)/Bug.o \
-	$(LIB)/Game.o \
-	$(LIB)/Gate.o \
-	$(LIB)/Player.o \
-	$(LIB)/Point.o \
-	$(LIB)/Snippet.o \
-	$(LIB)/Spawn.o \
+lib: $(OBJ)/Bomb.o \
+	$(OBJ)/Bug.o \
+	$(OBJ)/Game.o \
+	$(OBJ)/Player.o \
+	$(OBJ)/Point.o \
+	$(OBJ)/Snippet.o \
+	$(OBJ)/Spawn.o \
+	$(OBJ)/BehaviorTree.o \
+	$(OBJ)/Composite.o \
+	$(OBJ)/Action.o \
+	$(OBJ)/Condition.o \
+	$(OBJ)/Selector.o \
+	$(OBJ)/Sequence.o \
 
-$(LIB)/%.o : $(SRC)/%.cpp $(INC)/%.h
+
+
+
+$(OBJ)/%.o : $(SRC)/%.cpp $(INC)/%.h
 	$(GCC) $(FLAGS) -c $< -o $@ -I $(INC)
 
 clean:
+	rm $(OBJ)/*
 	rm $(BIN)/*
-	rm $(LIB)/*
 
 run:
 	$(BIN)/main
