@@ -1,9 +1,10 @@
 #include "Action.h"
 
-Action::Action(std::function<bool()> actionFunc) {
+Action::Action(std::function<void()> actionFunc) {
 	this->actionFunc = actionFunc;
 }
 
 bool Action::run() {
-	return actionFunc();
+	actionFunc();
+	return true;
 }

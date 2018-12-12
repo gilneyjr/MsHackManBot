@@ -5,12 +5,14 @@
 #include <vector>
 #include <stack>
 #include <queue>
+#include <map>
 #include "Point.h"
 #include "Snippet.h"
 #include "Bug.h"
 #include "Spawn.h"
 #include "Bomb.h"
 #include "Player.h"
+#include "BehaviorTree.h"
 
 class Game {
 private:
@@ -27,6 +29,7 @@ private:
 	std::vector<Spawn> spawns;
 	std::vector<Bomb> bombs;
 	std::stack<std::string> moves;
+	BehaviorTree* tree;
 
 	Player me;
 	Player enemy;
@@ -41,31 +44,36 @@ private:
 	void update();
 	void action();
 	void calculateDanger(size_t, size_t);
-	std::vector<size_t> getAdj(size_t pos);
+	std::vector<size_t> getAdj(size_t pos, bool gate);
+	int heuristic(size_t, size_t, bool);
+	std::string getMove(size_t, size_t, size_t, size_t);
+	bool goal(size_t, size_t);
 
-	/*void print() {
-		for(size_t i = 0; i < field_height; i++) {
-			for (size_t j = 0; j < field_width; ++j)
-				std::cout << std::right << std::setw(2) << danger[i*field_width + j] << " ";
-			std::cout << '\n';
-		}
+	struct Node {
+		size_t pos;
+		size_t parent;
+		int g;
+		int h;
+		bool closed;
 
-		std::cout << "\nEnemies: " << bugs.size() << "\n";
-	}*/
+		Node(size_t, int = 0, int = 0);
+		bool operator<(const Node &) const;
+	};
 public:
 	Game();
 	void run();
-	size_t dangerAt(size_t row, size_t col);
-	size_t getAdjWithLessDanger(size_t row, size_t col);
+	int dangerAt(size_t row, size_t col);
+	std::string getMoveOfLesserDanger(size_t row, size_t col);
 	void discardMoves();
 	bool hasMoves();
-	Point getMyTarget();
+	bool isThereTheTargetStill();
 	void move();
 	std::vector<Bomb>& getBombs();
 	std::vector<Snippet>& getSnippets();
 	Player& getMe();
 	Player& getEnemy();
-	void AStar();
+	void findPath(bool = false);
+	void setBehaviorTree(BehaviorTree *);
 };
 
 #endif

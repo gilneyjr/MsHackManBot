@@ -6,24 +6,23 @@
 #include "Sequence.h"
 #include "Selector.h"
 
+const int LIMIT_DANGER = -3;
+
 int main(int argc, char const *argv[]) {
 	Game g;
 
 	// ----------------- Run Away Sequence ----------------- //
 
-	Condition isThereDanger([g]() {
-		std::cout << "Is there danger?\n";
-		return true;
+	Condition isThereDanger([&g]() -> bool {
+		return g.dangerAt(g.getMe().getRow(), g.getMe().getCol()) > LIMIT_DANGER;
 	});
 
-	Action clearMoves([g]{
-		std::cout << "Clear moves!\n";
-		return true;
+	Action clearMoves([&g]() -> void {
+		g.discardMoves();
 	});
 
-	Action runAway([g]{
-		std::cout << "Run away!\n";
-		return true;
+	Action runAway([&g]() -> void {
+		std::cout << g.getMoveOfLesserDanger(g.getMe().getRow(), g.getMe().getCol()) << "\n";
 	});
 
 	Sequence runAwaySequence;
@@ -34,66 +33,95 @@ int main(int argc, char const *argv[]) {
 
 	// ----------------- Run Plan Sequence ----------------- //
 
-	Condition hasPlanning([g](){
-		std::cout << "Does it have a planning?\n";
-		return true;
+	Condition isThereAPlanning([&g]() -> bool {
+		return g.hasMoves();
 	});
 
-	Condition isThereATarget([g]() {
-		std::cout << "Is there a target already?\n";
-		return true;
+	Condition isThereATarget([&g]() -> bool {
+		return g.isThereTheTargetStill();
 	});
 
-	Action runMovesStackTop([g]() {
-		std::cout << "Run move from Moves Stack top!\n";
-		return true;
+	Action runMovesStackTop([&g]() -> void {
+		g.move();
 	});
 
 	Sequence runPlanSequence;
-	runPlanSequence.addChild(&hasPlanning);
+	runPlanSequence.addChild(&isThereAPlanning);
 	runPlanSequence.addChild(&isThereATarget);
 	runPlanSequence.addChild(&runMovesStackTop);
 
 	// ----------------- Planning Selector ----------------- //
 
 		// ------------ Bomb Planning Sequence ----------------- //
-		Condition isThereABomb([g]() {
-			std::cout << "Is there a bomb?\n";
-			return true;
+		Condition isThereABomb([&g]() -> bool {
+			return !g.getBombs().empty();
 		});
 
-		Condition fourMoreBombsThanEnemy([g]() {
-			std::cout << "Do I have four more bombs than my enemy?\n";
-			return true;
+		Condition fourMoreBombsThanMyEnemy([&g]() -> bool {
+			return g.getEnemy().getBombs()+4 < g.getMe().getBombs();
 		});
 
-		Condition isThereABombNear([g]() {
-			std::cout << "Is there a bomb near?\n";
-			return true;
+		Condition isThereABombNear([&g]() -> bool {
+			/* Calculate distance using Manhattan distance */
+			size_t bomb = 10000000; // Big number
+			for(auto &e : g.getBombs()){
+				size_t dist = (
+					e.getRow()-g.getMe().getRow() < 0 ?
+					-(e.getRow()-g.getMe().getRow()) :
+					e.getRow()-g.getMe().getRow()
+				);
+
+				dist += (
+					e.getCol()-g.getMe().getCol() < 0 ?
+					-(e.getCol()-g.getMe().getCol()) :
+					e.getCol()-g.getMe().getCol()
+				);
+
+				if(dist < bomb)
+					bomb = dist;
+			}
+
+			size_t snippet = 10000000; // Big number
+			for(auto &e : g.getSnippets()) {
+				size_t dist = (
+					e.getRow()-g.getMe().getRow() < 0 ?
+					-(e.getRow()-g.getMe().getRow()) :
+					e.getRow()-g.getMe().getRow()
+				);
+
+				dist += (
+					e.getCol()-g.getMe().getCol() < 0 ?
+					-(e.getCol()-g.getMe().getCol()) :
+					e.getCol()-g.getMe().getCol()
+				);
+
+				if(dist < snippet)
+					snippet = dist;
+			}
+
+			return bomb < snippet;
 		});
 
-		Action planPath([g]() {
-			std::cout << "Plan a new path!\n";
-			return true;
+		Action planAPath([&g]() -> void {
+			g.findPath();
 		});
 
 		Sequence bombPlanningSequence;
 		bombPlanningSequence.addChild(&isThereABomb);
-		bombPlanningSequence.addChild(&fourMoreBombsThanEnemy);
+		bombPlanningSequence.addChild(&fourMoreBombsThanMyEnemy);
 		bombPlanningSequence.addChild(&isThereABombNear);
-		bombPlanningSequence.addChild(&planPath);
+		bombPlanningSequence.addChild(&planAPath);
 		bombPlanningSequence.addChild(&runMovesStackTop);
 
 		// ------------ Snippet Planning Sequence -------------- //
 
-		Condition isThereASnippet([g]() {
-			std::cout << "Is there a snippet?\n";
-			return true;
+		Condition isThereASnippet([&g]() -> bool {
+			return !g.getSnippets().empty();
 		});
 
 		Sequence snippetPlanningSequence;
 		snippetPlanningSequence.addChild(&isThereASnippet);
-		snippetPlanningSequence.addChild(&planPath);
+		snippetPlanningSequence.addChild(&planAPath);
 		snippetPlanningSequence.addChild(&runMovesStackTop);
 
 	Selector planningSelector;
@@ -107,7 +135,8 @@ int main(int argc, char const *argv[]) {
 	root.addChild(&runPlanSequence);
 	root.addChild(&planningSelector);
 
-	root.run();
+	g.setBehaviorTree(&root);
+	g.run();
 	
 	return 0;
 }

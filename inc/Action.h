@@ -6,10 +6,10 @@
 
 class Action : public BehaviorTree {
 private:
-	std::function<bool()> actionFunc;
+	std::function<void()> actionFunc;
 	
 public:
-	Action(std::function<bool()>);
+	Action(std::function<void()>);
 	bool run();
 };
 
